@@ -1,0 +1,12 @@
+{
+  "projects": {
+    "default": "newapiprovider"
+  },
+  "targets": {
+    "newapiprovider": {
+      "hosting": {
+        "admin": ["newapiadmin"]
+      }
+    }
+  }
+}
