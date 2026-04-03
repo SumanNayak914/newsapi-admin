@@ -378,7 +378,15 @@ export default function Articles() {
                 </div>
               </LabeledInput>
               <LabeledInput label="Title *"><input className={inputCls} value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} placeholder="Article title…" /></LabeledInput>
-              <LabeledInput label="Short Description"><textarea className={`${inputCls} resize-none`} rows={2} value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="Brief summary…" /></LabeledInput>
+              <div>
+                <label className="mb-1.5 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  Short Description
+                  <span className="rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-blue-400 normal-case">API Preview</span>
+                </label>
+                <textarea className={`${inputCls} resize-none`} rows={2} maxLength={300} value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="Brief summary shown to API users (max 300 chars)…" />
+                <p className="mt-1.5 text-[11px] text-slate-500">API users sirf yahi description dekhenge + article link milega. Full content website pe redirect hoga.</p>
+                <p className="mt-0.5 text-right text-[11px] text-slate-600">{form.description.length}/300</p>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <LabeledInput label="Category">
                   <select className={inputCls} value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))}>{catList.map(c => <option key={c}>{c}</option>)}</select>
