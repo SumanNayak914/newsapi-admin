@@ -21,14 +21,16 @@ export default function Login() {
     const [error, setError] = useState('')
     const navigate = useNavigate()
 
-    const loginSuccess = (user) => {
+    const loginSuccess = async (user) => {
         // Check karo ki user admin hai
         if (!ADMIN_EMAILS.includes(user.email)) {
             auth.signOut()
             setError('Access denied. Aapka email admin list mein nahi hai.')
             return
         }
-        localStorage.setItem('admin_token', 'firebase_' + Date.now())
+        // Real Firebase JWT token save karo (dummy timestamp nahi)
+        const token = await user.getIdToken()
+        localStorage.setItem('admin_token', token)
         localStorage.setItem('admin_user', JSON.stringify({
             name: user.displayName || user.email.split('@')[0],
             email: user.email,

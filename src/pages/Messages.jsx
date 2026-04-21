@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Mail, MailOpen, RefreshCw, Reply, Trash2, Search, CheckCircle, Clock, AlertCircle } from 'lucide-react'
+import { db } from '../firebase'
+import { collection, getDocs, deleteDoc, doc, updateDoc, serverTimestamp, orderBy, query } from 'firebase/firestore'
 
 const API_BASE = 'http://localhost:3000'
 
@@ -51,6 +53,25 @@ export default function Messages() {
       if (selected?.id === id) setSelected(prev => ({ ...prev, status }))
     } catch (e) { alert('Update failed: ' + e.message) }
     setUpdating(null)
+  }
+
+  const deleteMessage = async (id) => {
+    if (!window.confirm('⚠️ Message permanently delete karna hai?')) return
+    try {
+      // Try API delete first
+      try {
+        await fetch(`${API_BASE}/api/contact`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id }),
+        })
+      } catch {
+        // Fallback: Firestore se directly delete
+        await deleteDoc(doc(db, 'contacts', id))
+      }
+      setMessages(p => p.filter(m => m.id !== id))
+      if (selected?.id === id) setSelected(null)
+    } catch (e) { alert('Delete failed: ' + e.message) }
   }
 
   const filtered = messages.filter(m => {
@@ -228,6 +249,12 @@ export default function Messages() {
                     <CheckCircle size={14} /> Mark Replied
                   </button>
                 )}
+                <button
+                  onClick={() => deleteMessage(selected.id)}
+                  className="ml-auto flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm font-semibold text-red-400 transition hover:bg-red-500/20"
+                >
+                  <Trash2 size={14} /> Delete
+                </button>
               </div>
             </>
           ) : (

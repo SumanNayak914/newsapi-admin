@@ -7,12 +7,22 @@ const BASE = import.meta.env.DEV
 async function getToken() {
   await auth.authStateReady()
   const user = auth.currentUser
-  if (!user) return null
-  try {
-    return await user.getIdToken()
-  } catch {
-    return null
+
+  // Agar Firebase auth state available hai toh fresh token lo
+  if (user) {
+    try {
+      const freshToken = await user.getIdToken(true) // true = force refresh
+      localStorage.setItem('admin_token', freshToken) // latest token save karo
+      return freshToken
+    } catch {
+      return null
+    }
   }
+
+  // Fallback: localStorage mein stored token use karo (page refresh ke baad)
+  const stored = localStorage.getItem('admin_token')
+  if (stored && !stored.startsWith('firebase_')) return stored // real JWT hai
+  return null
 }
 
 async function authHeaders(json = false) {

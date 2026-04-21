@@ -1,8 +1,25 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Search, Plus, Edit2, Trash2, Save, X, RefreshCw, Image, Eye, TrendingUp, ToggleLeft, ToggleRight, ChevronLeft, ChevronRight, Upload } from 'lucide-react'
-import { db, storage } from '../firebase'
-import { collection, getDocs, addDoc, updateDoc, doc, serverTimestamp, orderBy, query } from 'firebase/firestore'
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { db } from '../firebase'
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, orderBy, query } from 'firebase/firestore'
+// Firebase Storage removed — using Cloudinary instead (free, no billing needed)
+// 👇 Apna Cloudinary Cloud Name aur Upload Preset yahan daalo
+const CLOUDINARY_CLOUD_NAME = 'dhijntnrf'
+const CLOUDINARY_UPLOAD_PRESET = 'ml_default_unsigned'
+
+async function uploadToCloudinary(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET)
+  formData.append('folder', 'articles')
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+    method: 'POST',
+    body: formData,
+  })
+  if (!res.ok) throw new Error('Image upload failed. Check your Cloudinary Cloud Name & Upload Preset.')
+  const data = await res.json()
+  return data.secure_url
+}
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 
@@ -124,9 +141,7 @@ export default function Articles() {
     try {
       let imageUrl = form.imageUrl
       if (imageFile) {
-        const storRef = ref(storage, `articles/${Date.now()}_${imageFile.name}`)
-        await uploadBytes(storRef, imageFile)
-        imageUrl = await getDownloadURL(storRef)
+        imageUrl = await uploadToCloudinary(imageFile)
       }
       const content = editor?.getHTML() || form.content
       // Slug auto-generate karo title se (website ke liye zaroori)
@@ -150,6 +165,14 @@ export default function Articles() {
 
   const softDelete = async (id) => {
     try { await updateDoc(doc(db, 'articles', id), { isActive: false, updatedAt: serverTimestamp() }); setArticles(p => p.map(a => a.id === id ? { ...a, isActive: false } : a)) } catch (e) { alert('Error: ' + e.message) }
+    setDelId(null)
+  }
+
+  const permanentDelete = async (id) => {
+    try {
+      await deleteDoc(doc(db, 'articles', id))
+      setArticles(p => p.filter(a => a.id !== id))
+    } catch (e) { alert('Error: ' + e.message) }
     setDelId(null)
   }
 
@@ -425,11 +448,12 @@ export default function Articles() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={() => setDelId(null)}>
           <div className="w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-900 p-7 text-center shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-500/10"><Trash2 size={22} className="text-red-400" /></div>
-            <h3 className="mb-2 text-lg font-bold text-slate-100">Mark as Inactive?</h3>
-            <p className="mb-6 text-sm text-slate-500">Article will be hidden from website. You can reactivate anytime.</p>
-            <div className="flex gap-3">
-              <button onClick={() => setDelId(null)} className="flex-1 rounded-xl border border-slate-700 bg-slate-800 py-2.5 text-sm font-medium text-slate-400 hover:text-slate-200">Cancel</button>
-              <button onClick={() => softDelete(delId)} className="flex-1 rounded-xl bg-red-500/15 py-2.5 text-sm font-semibold text-red-400 hover:bg-red-500/25">Mark Inactive</button>
+            <h3 className="mb-2 text-lg font-bold text-slate-100">Delete Article</h3>
+            <p className="mb-6 text-sm text-slate-500">Choose an action for this article.</p>
+            <div className="flex flex-col gap-2.5">
+              <button onClick={() => softDelete(delId)} className="w-full rounded-xl border border-amber-500/20 bg-amber-500/10 py-2.5 text-sm font-semibold text-amber-400 hover:bg-amber-500/20 transition">Mark Inactive (can reactivate later)</button>
+              <button onClick={() => { if (window.confirm('⚠️ Permanent delete? Yeh wapas nahi aayega!')) permanentDelete(delId) }} className="w-full rounded-xl bg-red-500/15 border border-red-500/20 py-2.5 text-sm font-semibold text-red-400 hover:bg-red-500/25 transition">🗑️ Permanent Delete</button>
+              <button onClick={() => setDelId(null)} className="w-full rounded-xl border border-slate-700 bg-slate-800 py-2.5 text-sm font-medium text-slate-400 hover:text-slate-200 transition">Cancel</button>
             </div>
           </div>
         </div>

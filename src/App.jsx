@@ -13,7 +13,13 @@ import Messages from './pages/Messages'
 
 function PrivateRoute({ children }) {
   const token = localStorage.getItem('admin_token')
-  return token ? children : <Navigate to="/login" replace />
+  // Purana fake token format (firebase_timestamp) detect karo aur clear karo
+  if (!token || token.startsWith('firebase_')) {
+    localStorage.removeItem('admin_token')
+    localStorage.removeItem('admin_user')
+    return <Navigate to="/login" replace />
+  }
+  return children
 }
 
 export default function App() {
